@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package video;
+
+// --- Üzenetek ---
+
+// Egy feltöltött videó chunk
+message VideoChunk {
+  string videoId = 1;       // Videó azonosító
+  int32 chunkIndex = 2;     // Hanyadik darab
+  bytes data = 3;           // Bináris adat
+}
+
+// Feldolgozás közbeni státusz üzenet
+message ProcessingStatus {
+  string videoId = 1;
+  int32 chunkIndex = 2;
+  string status = 3;        // "IN_PROGRESS", "DONE", "FAILED"
+  string errorMessage = 4;  // ha van hiba
+}
+
+// Feldolgozás végső eredménye
+message ProcessingResult {
+  string videoId = 1;
+  bool success = 2;
+  string outputUrl = 3;     // elkészült videó elérési útja
+}
+
+// --- Service definíció ---
+
+service VideoProcessor {
+  // Client -> streamben küldi a chunkokat
+  // Server -> streamben küldi vissza a státuszokat feldolgozás közben
+  rpc ProcessVideo(stream VideoChunk) returns (stream ProcessingStatus);
+
+  // Alternatív megoldás: csak a végeredményt adja vissza
+  rpc ProcessVideoSimple(stream VideoChunk) returns (ProcessingResult);
+}

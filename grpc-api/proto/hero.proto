@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package hero;
+
+service HeroService {
+  rpc FindOne (HeroById) returns (Hero) {}
+  rpc FindMany (Empty) returns (Heroes) {}
+  rpc CreateHero (CreateHeroRequest) returns (Hero) {}
+}
+
+message Empty {}
+
+message HeroById {
+  int32 id = 1;
+}
+
+message Hero {
+  int32 id = 1;
+  string name = 2;
+}
+
+message Heroes {
+  repeated Hero heroes = 1;
+}
+
+message CreateHeroRequest {
+  string name = 1;
+}
