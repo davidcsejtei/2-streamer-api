@@ -3,6 +3,7 @@ node_modules
 .DS_Store
 .env
 dist
+downloaded_test-video-01.mov
 
 # Video files
 *.mov
