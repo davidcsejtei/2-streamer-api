@@ -3,3 +3,12 @@ node_modules
 .DS_Store
 .env
 dist
+
+# Video files
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.webm
+*.flv
+downloaded_*
