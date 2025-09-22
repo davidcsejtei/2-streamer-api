@@ -1,0 +1,24 @@
+{
+  "name": "2-streamer-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "test-video-download-client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidcsejtei/2-streamer-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/davidcsejtei/2-streamer-api/issues"
+  },
+  "homepage": "https://github.com/davidcsejtei/2-streamer-api#readme",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.0"
+  }
+}

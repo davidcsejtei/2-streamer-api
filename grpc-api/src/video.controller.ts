@@ -1,26 +1,8 @@
 import { Controller } from '@nestjs/common';
 import { GrpcMethod, GrpcStreamMethod } from '@nestjs/microservices';
 import { Observable } from 'rxjs';
-import { VideoService } from './video.service';
-
-interface VideoChunk {
-  videoId: string;
-  chunkIndex: number;
-  data: Buffer;
-}
-
-interface ProcessingStatus {
-  videoId: string;
-  chunkIndex: number;
-  status: string;
-  errorMessage?: string;
-}
-
-interface ProcessingResult {
-  videoId: string;
-  success: boolean;
-  outputUrl?: string;
-}
+import { VideoService, VideoChunk, ProcessingStatus, ProcessingResult } from './video.service';
+import type { DownloadRequest } from './video.service';
 
 @Controller()
 export class VideoController {
@@ -33,6 +15,20 @@ export class VideoController {
 
   @GrpcStreamMethod('VideoProcessor', 'ProcessVideoSimple')
   async processVideoSimple(chunks$: Observable<VideoChunk>): Promise<ProcessingResult> {
+    console.log('ProcessVideoSimple method called');
     return this.videoService.processVideoSimple(chunks$);
+  }
+
+  getOriginalVideo(): { path: string; exists: boolean } {
+    return this.videoService.getOriginalVideo();
+  }
+
+  getVideoChunks(videoId: string): VideoChunk[] {
+    return this.videoService.getVideoChunks(videoId);
+  }
+
+  @GrpcMethod('VideoProcessor', 'DownloadVideo')
+  downloadVideo(request: DownloadRequest): Observable<VideoChunk> {
+    return this.videoService.downloadVideo(request);
   }
 }

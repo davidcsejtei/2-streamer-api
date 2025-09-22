@@ -26,6 +26,11 @@ message ProcessingResult {
   string outputUrl = 3;     // elkészült videó elérési útja
 }
 
+// Videó letöltési kérés
+message DownloadRequest {
+  string videoId = 1;       // letöltendő videó azonosító
+}
+
 // --- Service definíció ---
 
 service VideoProcessor {
@@ -35,4 +40,7 @@ service VideoProcessor {
 
   // Alternatív megoldás: csak a végeredményt adja vissza
   rpc ProcessVideoSimple(stream VideoChunk) returns (ProcessingResult);
+
+  // Server -> streamben küldi a videó chunkokat a clientnek
+  rpc DownloadVideo(DownloadRequest) returns (stream VideoChunk);
 }
