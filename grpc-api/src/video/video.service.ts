@@ -50,7 +50,7 @@ export class VideoService {
    * A '../../videos/01.mov' fájlra hivatkozik.
    */
   getOriginalVideo(): { path: string; exists: boolean } {
-    const videoPath = path.join(__dirname, '../../videos/01.mov');
+    const videoPath = path.join(__dirname, '../../../videos/01.mov');
     this.logger.log(`Getting original video info: ${videoPath}`);
     return {
       path: videoPath,
@@ -71,7 +71,7 @@ export class VideoService {
     // Check for processed video first
     const processedVideoPath = path.join(
       __dirname,
-      '../../videos',
+      '../../../videos',
       `${videoId}.mov`,
     );
 
@@ -81,7 +81,7 @@ export class VideoService {
       videoPath = processedVideoPath;
     } else {
       // Fallback to original video if videoId matches
-      const originalVideoPath = path.join(__dirname, '../../videos/01.mov');
+      const originalVideoPath = path.join(__dirname, '../../../videos/01.mov');
       if (fs.existsSync(originalVideoPath)) {
         this.logger.log(
           `Using original video as fallback: ${originalVideoPath}`,
