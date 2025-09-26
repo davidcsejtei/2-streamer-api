@@ -58,7 +58,7 @@ async function main() {
     console.log('Testing video download from server...')
 
     // Test with a video ID (assuming there's a processed video or fallback to original)
-    const videoId = '01'
+    const videoId = 'grpc-jo'
     await downloadVideo(videoId)
 
     console.log('Download test completed successfully!')

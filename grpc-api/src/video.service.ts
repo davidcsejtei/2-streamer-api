@@ -33,7 +33,9 @@ export class VideoService {
     const chunkSize = 64 * 1024;
     const chunks: Buffer[] = [];
 
-    this.logger.log(`Video file size: ${data.length} bytes, will create ${Math.ceil(data.length / chunkSize)} chunks`);
+    this.logger.log(
+      `Video file size: ${data.length} bytes, will create ${Math.ceil(data.length / chunkSize)} chunks`,
+    );
 
     for (let i = 0; i < data.length; i += chunkSize) {
       chunks.push(data.subarray(i, i + chunkSize));
@@ -69,7 +71,7 @@ export class VideoService {
     // Check for processed video first
     const processedVideoPath = path.join(
       __dirname,
-      '../../videos/processed',
+      '../../videos',
       `${videoId}.mov`,
     );
 
@@ -81,7 +83,9 @@ export class VideoService {
       // Fallback to original video if videoId matches
       const originalVideoPath = path.join(__dirname, '../../videos/01.mov');
       if (fs.existsSync(originalVideoPath)) {
-        this.logger.log(`Using original video as fallback: ${originalVideoPath}`);
+        this.logger.log(
+          `Using original video as fallback: ${originalVideoPath}`,
+        );
         videoPath = originalVideoPath;
       } else {
         this.logger.error(`Video not found: ${videoId}`);
@@ -92,14 +96,19 @@ export class VideoService {
 
     try {
       const chunks = this.streamVideo(videoPath);
+      const streamStartTime = Date.now();
 
       // Stream chunks asynchronously with a small delay
       let chunkIndex = 0;
       const totalChunks = chunks.length;
       const streamChunks = () => {
         if (chunkIndex < chunks.length) {
-          const progress = ((chunkIndex + 1) / totalChunks * 100).toFixed(1);
-          this.logger.log(`Streaming chunk ${chunkIndex + 1}/${totalChunks} (${progress}%) for video ${videoId}`);
+          const progress = (((chunkIndex + 1) / totalChunks) * 100).toFixed(1);
+          const elapsedTime = Date.now() - streamStartTime;
+          const elapsedTimeInSeconds = (elapsedTime / 1000).toFixed(2);
+          this.logger.log(
+            `Streaming chunk ${chunkIndex + 1}/${totalChunks} (${progress}%) for video ${videoId} - elapsed: ${elapsedTimeInSeconds}s`,
+          );
 
           subject.next({
             videoId,
@@ -109,7 +118,12 @@ export class VideoService {
           chunkIndex++;
           setTimeout(streamChunks, 0);
         } else {
-          this.logger.log(`Streaming completed for video ${videoId} - sent ${totalChunks} chunks`);
+          const totalTime = Date.now() - streamStartTime;
+          const avgTimePerChunk = totalTime / totalChunks;
+          const totalTimeInSeconds = (totalTime / 1000).toFixed(2);
+          this.logger.log(
+            `Streaming completed for video ${videoId} - sent ${totalChunks} chunks in ${totalTimeInSeconds}s (avg: ${avgTimePerChunk.toFixed(2)}ms/chunk)`,
+          );
           subject.complete();
         }
       };
