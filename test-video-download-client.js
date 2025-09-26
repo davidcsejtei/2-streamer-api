@@ -1,25 +1,9 @@
-const grpc = require('@grpc/grpc-js')
-const protoLoader = require('@grpc/proto-loader')
+const { createVideoClient } = require('video-protos')
 const fs = require('fs')
 const path = require('path')
 
-// Load the proto file
-const PROTO_PATH = './grpc-api/proto/video.proto'
-const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
-  keepCase: true,
-  longs: String,
-  enums: String,
-  defaults: true,
-  oneofs: true
-})
-
-const videoProto = grpc.loadPackageDefinition(packageDefinition).video
-
 // Create client
-const client = new videoProto.VideoProcessor(
-  'localhost:5003',
-  grpc.credentials.createInsecure()
-)
+const client = createVideoClient('localhost:5003')
 
 async function downloadVideo(videoId) {
   console.log(`Starting download for video: ${videoId}`)
@@ -74,7 +58,7 @@ async function main() {
     console.log('Testing video download from server...')
 
     // Test with a video ID (assuming there's a processed video or fallback to original)
-    const videoId = 'test-video-01'
+    const videoId = '01'
     await downloadVideo(videoId)
 
     console.log('Download test completed successfully!')

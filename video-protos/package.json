@@ -1,0 +1,29 @@
+{
+  "name": "video-protos",
+  "version": "1.0.0",
+  "description": "Shared video processing protobuf definitions and client utilities",
+  "main": "src/index.js",
+  "types": "src/index.ts",
+  "files": [
+    "src/**/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": ["grpc", "protobuf", "video", "streaming"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.7",
+    "typescript": "^5.7.3"
+  },
+  "peerDependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@grpc/proto-loader": "^0.8.0"
+  }
+}

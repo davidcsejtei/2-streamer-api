@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/davidcsejtei/2-streamer-api#readme",
   "dependencies": {
-    "@grpc/grpc-js": "^1.14.0"
+    "@grpc/grpc-js": "^1.14.0",
+    "video-protos": "file:video-protos"
   }
 }

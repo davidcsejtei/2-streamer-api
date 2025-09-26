@@ -10,7 +10,7 @@ async function bootstrap() {
       transport: Transport.GRPC,
       options: {
         package: ['video'],
-        protoPath: [join(__dirname, '../proto/video.proto')],
+        protoPath: [join(__dirname, '../node_modules/video-protos/src/proto/video.proto')],
         url: '0.0.0.0:5003',
       },
     },

@@ -1,144 +1,31 @@
-import { Injectable } from '@nestjs/common';
-import { Observable, Subject, firstValueFrom } from 'rxjs';
-import { toArray } from 'rxjs/operators';
+import { Injectable, Logger } from '@nestjs/common';
+import { Observable, Subject } from 'rxjs';
 import * as fs from 'fs';
 import * as path from 'path';
-
-export interface VideoChunk {
-  videoId: string;
-  chunkIndex: number;
-  data: Buffer;
-}
-
-export interface ProcessingStatus {
-  videoId: string;
-  chunkIndex: number;
-  status: string;
-  errorMessage?: string;
-}
-
-export interface ProcessingResult {
-  videoId: string;
-  success: boolean;
-  outputUrl?: string;
-}
-
-export interface DownloadRequest {
-  videoId: string;
-}
+import { VideoChunk, ProcessingStatus, DownloadRequest } from 'video-protos';
 
 @Injectable()
 export class VideoService {
+  private readonly logger = new Logger(VideoService.name);
   private videoChunks = new Map<string, VideoChunk[]>();
 
-  processVideo(chunks$: Observable<VideoChunk>): Observable<ProcessingStatus> {
-    const statusSubject = new Subject<ProcessingStatus>();
-
-    chunks$.subscribe({
-      next: (chunk) => {
-        const { videoId, chunkIndex } = chunk;
-
-        if (!this.videoChunks.has(videoId)) {
-          this.videoChunks.set(videoId, []);
-        }
-
-        this.videoChunks.get(videoId)!.push(chunk);
-
-        statusSubject.next({
-          videoId,
-          chunkIndex,
-          status: 'IN_PROGRESS',
-        });
-
-        statusSubject.next({
-          videoId,
-          chunkIndex,
-          status: 'DONE',
-        });
-      },
-      error: (error) => {
-        statusSubject.error(error);
-      },
-      complete: () => {
-        statusSubject.complete();
-      },
-    });
-
-    return statusSubject.asObservable();
-  }
-
-  async processVideoSimple(chunks$: Observable<VideoChunk>): Promise<ProcessingResult> {
-    console.log('processVideoSimple service method called');
-
-    try {
-      console.log('Converting stream to array using firstValueFrom and toArray');
-      const chunks = await firstValueFrom(chunks$.pipe(toArray()));
-      console.log(`Received ${chunks.length} chunks from stream`);
-
-      if (chunks.length === 0) {
-        console.log('No chunks received, returning failure');
-        return {
-          videoId: 'unknown',
-          success: false,
-          outputUrl: undefined,
-        };
-      }
-
-      const videoId = chunks[0].videoId;
-      this.videoChunks.set(videoId, chunks);
-
-      try {
-        this.saveVideoFile(videoId, chunks);
-        console.log(`Video file saved successfully: ${videoId}.mov`);
-        return {
-          videoId,
-          success: true,
-          outputUrl: `/videos/${videoId}.mov`,
-        };
-      } catch (error) {
-        console.error(`Error saving video file ${videoId}:`, error);
-        return {
-          videoId,
-          success: false,
-          outputUrl: undefined,
-        };
-      }
-    } catch (error) {
-      console.error('Error processing video stream:', error);
-      return {
-        videoId: 'unknown',
-        success: false,
-        outputUrl: undefined,
-      };
-    }
-  }
-
+  /**
+   * Visszaadja egy adott videó ID-hoz tartozó összes chunk-ot a memóriából.
+   * Ha nincs ilyen videó, üres tömböt ad vissza.
+   */
   getVideoChunks(videoId: string): VideoChunk[] {
+    this.logger.log(`Getting video chunks for videoId: ${videoId}`);
     return this.videoChunks.get(videoId) || [];
   }
 
-  private saveVideoFile(videoId: string, chunks: VideoChunk[]): void {
-    const outputDir = path.join(__dirname, '../../videos/processed');
-    const outputPath = path.join(outputDir, `${videoId}.mov`);
-
-    console.log(`Attempting to save video file: ${outputPath}`);
-    console.log(`Number of chunks to save: ${chunks.length}`);
-
-    if (!fs.existsSync(outputDir)) {
-      console.log(`Creating output directory: ${outputDir}`);
-      fs.mkdirSync(outputDir, { recursive: true });
-    }
-
-    const sortedChunks = chunks.sort((a, b) => a.chunkIndex - b.chunkIndex);
-    const videoData = Buffer.concat(sortedChunks.map(chunk => chunk.data));
-
-    console.log(`Total video data size: ${videoData.length} bytes`);
-    fs.writeFileSync(outputPath, videoData);
-    console.log(`Video file written to: ${outputPath}`);
-  }
-
+  /**
+   * Beolvas egy videó fájlt és 64KB-os chunk-okra bontja.
+   * Visszaadja a chunk-ok tömbjét Buffer formátumban.
+   */
   streamVideo(videoPath: string): Buffer[] {
+    this.logger.log(`Streaming video from path: ${videoPath}`);
     if (!fs.existsSync(videoPath)) {
+      this.logger.error(`Video file not found: ${videoPath}`);
       throw new Error(`Video file not found: ${videoPath}`);
     }
 
@@ -146,37 +33,58 @@ export class VideoService {
     const chunkSize = 64 * 1024;
     const chunks: Buffer[] = [];
 
+    this.logger.log(`Video file size: ${data.length} bytes, will create ${Math.ceil(data.length / chunkSize)} chunks`);
+
     for (let i = 0; i < data.length; i += chunkSize) {
       chunks.push(data.subarray(i, i + chunkSize));
     }
 
+    this.logger.log(`Created ${chunks.length} chunks for streaming`);
     return chunks;
   }
 
+  /**
+   * Visszaadja az eredeti teszt videó fájl elérési útját és létezési státuszát.
+   * A '../../videos/01.mov' fájlra hivatkozik.
+   */
   getOriginalVideo(): { path: string; exists: boolean } {
     const videoPath = path.join(__dirname, '../../videos/01.mov');
+    this.logger.log(`Getting original video info: ${videoPath}`);
     return {
       path: videoPath,
-      exists: fs.existsSync(videoPath)
+      exists: fs.existsSync(videoPath),
     };
   }
 
+  /**
+   * Stream-ben küldi vissza egy videó chunk-jait letöltéshez.
+   * Először feldolgozott videót keres, ha nincs, az eredeti videóra vált vissza.
+   * Aszinkron módon küldi a chunk-okat kis késleltetéssel.
+   */
   downloadVideo(request: DownloadRequest): Observable<VideoChunk> {
     const { videoId } = request;
+    this.logger.log(`Starting download for videoId: ${videoId}`);
     const subject = new Subject<VideoChunk>();
 
     // Check for processed video first
-    const processedVideoPath = path.join(__dirname, '../../videos/processed', `${videoId}.mov`);
+    const processedVideoPath = path.join(
+      __dirname,
+      '../../videos/processed',
+      `${videoId}.mov`,
+    );
 
     let videoPath: string;
     if (fs.existsSync(processedVideoPath)) {
+      this.logger.log(`Using processed video: ${processedVideoPath}`);
       videoPath = processedVideoPath;
     } else {
       // Fallback to original video if videoId matches
       const originalVideoPath = path.join(__dirname, '../../videos/01.mov');
       if (fs.existsSync(originalVideoPath)) {
+        this.logger.log(`Using original video as fallback: ${originalVideoPath}`);
         videoPath = originalVideoPath;
       } else {
+        this.logger.error(`Video not found: ${videoId}`);
         subject.error(new Error(`Video not found: ${videoId}`));
         return subject.asObservable();
       }
@@ -187,16 +95,21 @@ export class VideoService {
 
       // Stream chunks asynchronously with a small delay
       let chunkIndex = 0;
+      const totalChunks = chunks.length;
       const streamChunks = () => {
         if (chunkIndex < chunks.length) {
+          const progress = ((chunkIndex + 1) / totalChunks * 100).toFixed(1);
+          this.logger.log(`Streaming chunk ${chunkIndex + 1}/${totalChunks} (${progress}%) for video ${videoId}`);
+
           subject.next({
             videoId,
             chunkIndex,
-            data: chunks[chunkIndex]
+            data: chunks[chunkIndex],
           });
           chunkIndex++;
-          setTimeout(streamChunks, 0); // Use setTimeout instead of setImmediate
+          setTimeout(streamChunks, 0);
         } else {
+          this.logger.log(`Streaming completed for video ${videoId} - sent ${totalChunks} chunks`);
           subject.complete();
         }
       };
@@ -204,6 +117,7 @@ export class VideoService {
       // Add a small delay before starting to ensure client is ready
       setTimeout(streamChunks, 10);
     } catch (error) {
+      this.logger.error(`Error streaming video ${videoId}:`, error);
       subject.error(error);
     }
 
